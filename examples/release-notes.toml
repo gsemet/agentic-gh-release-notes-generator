@@ -1,0 +1,48 @@
+# .release-notes.toml — every key is optional; this shows the useful ones.
+# The same keys work under [tool.agentic-release-notes] in pyproject.toml.
+
+product = "okf-schema: validation and tooling for Open Knowledge Format bundles"
+audience = "engineers who write OKF bundles and run the okf, okfkb and okfreq CLIs"
+guidance = """
+Name commands as `okfkb <command>`. Mention schema version bumps in Breaking changes.
+"""
+tag_pattern = "v{version}"        # default: read from commitizen, else v-optional semver/calver
+prerelease_baseline = "stable"    # stable releases are compared with the previous stable one
+# paths = ["packages/cli"]        # monorepo: only commits and files under these paths
+# ignore_commits = ["^docs\\(internal\\)"]   # extra regexes, on top of bump/release commits
+# context_files = ["docs/glossary.md"]      # extra terminology sources for the agent
+
+[sections]                        # optional title overrides
+features = "✨ New features"
+fixes = "🐛 Bug fixes"
+
+[agent]
+backend = "copilot"               # auto | copilot | claude | codex | command | none
+# model = "claude-sonnet-5-5"
+attempts = 3
+fallback = "error"                # or "deterministic"
+# command = ["my-agent", "--read-only"]   # backend = "command": brief on stdin, answer on stdout
+
+[links]
+strict = true                     # links must exist in the docs index (page and anchor)
+require = false                   # true: features/improvements/breaking must link the docs
+
+[evidence]
+max_chars = 150000
+# internal = ["tools/**"]         # never user-facing
+# docs = ["handbook/**"]          # treat as documentation
+
+# Documentation sites. Leave out to auto-detect (mkdocs or sphinx, then forge Markdown).
+[[docs]]
+type = "sphinx"
+base_url = "https://okf-schema.readthedocs.io/en/stable/"
+
+[[docs]]
+type = "markdown"                 # README and other Markdown, linked on GitHub at the tag
+
+# [[docs]]                        # Docusaurus, VitePress, Hugo, Jekyll...
+# type = "static"
+# root = "website/docs"
+# base_url = "https://example.org/docs/"
+# url_style = "clean"             # html (page.html) | dir (page/) | clean (page)
+# slug = "github"                 # github | docutils | python-markdown

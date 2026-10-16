@@ -1,0 +1,28 @@
+# Copy to .github/workflows/release-notes.yml in your project.
+# Requires a COPILOT_GITHUB_TOKEN secret: a fine-grained PAT with the "Copilot Requests" permission.
+name: Release notes
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re)generate notes for
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history and tags are required
+      - uses: gsemet/agentic-gh-release-notes-generator@main
+        with:
+          to: ${{ inputs.tag || github.ref_name }}
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          publish: draft # review, then publish the draft release by hand

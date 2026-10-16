@@ -1,0 +1,120 @@
+name: Agentic release notes
+description: >-
+  User-facing release notes written by a coding agent from the actual changes, with examples
+  and links to the exact documentation sections, validated against the release evidence.
+branding:
+  icon: file-text
+  color: blue
+
+inputs:
+  to:
+    description: Release ref (tag, branch or sha). Defaults to the ref that triggered the run.
+    default: ${{ github.ref_name }}
+  from:
+    description: Previous release ref. Defaults to the previous release tag.
+    default: ""
+  version:
+    description: Label for an untagged target, e.g. v1.4.0 when generating before tagging.
+    default: ""
+  agent:
+    description: copilot, claude, codex, command or none (conventional commits only).
+    default: copilot
+  model:
+    description: Model passed to the agent CLI.
+    default: ""
+  format:
+    description: github, changelog or json.
+    default: github
+  output:
+    description: Rendered notes file.
+    default: release-notes.md
+  json-output:
+    description: Optional structured notes file (JSON).
+    default: ""
+  fallback:
+    description: What to do when the agent gives no valid notes, error or deterministic.
+    default: error
+  args:
+    description: Extra arguments for `agentic-release-notes generate`.
+    default: ""
+  publish:
+    description: none, draft (create a draft release), release (create and publish) or update.
+    default: none
+  copilot-token:
+    description: Token with Copilot access (fine-grained PAT with the "Copilot Requests" permission).
+    default: ""
+  anthropic-api-key:
+    description: API key for the claude agent.
+    default: ""
+  openai-api-key:
+    description: API key for the codex agent.
+    default: ""
+
+outputs:
+  notes-file:
+    description: Path of the rendered notes.
+    value: ${{ inputs.output }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v5
+
+    - name: Install the agent CLI
+      shell: bash
+      env:
+        AGENT: ${{ inputs.agent }}
+      run: |
+        case "$AGENT" in
+          copilot) command -v copilot >/dev/null || npm install -g @github/copilot ;;
+          claude)  command -v claude  >/dev/null || npm install -g @anthropic-ai/claude-code ;;
+          codex)   command -v codex   >/dev/null || npm install -g @openai/codex ;;
+        esac
+
+    - name: Generate release notes
+      shell: bash
+      env:
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-token }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        IN_TO: ${{ inputs.to }}
+        IN_FROM: ${{ inputs.from }}
+        IN_VERSION: ${{ inputs.version }}
+        IN_AGENT: ${{ inputs.agent }}
+        IN_MODEL: ${{ inputs.model }}
+        IN_FORMAT: ${{ inputs.format }}
+        IN_OUTPUT: ${{ inputs.output }}
+        IN_JSON: ${{ inputs.json-output }}
+        IN_FALLBACK: ${{ inputs.fallback }}
+        IN_ARGS: ${{ inputs.args }}
+      run: |
+        set -euo pipefail
+        args=(generate --to "$IN_TO" --agent "$IN_AGENT" --format "$IN_FORMAT"
+              --fallback "$IN_FALLBACK" -o "$IN_OUTPUT")
+        [[ -n "$IN_FROM" ]] && args+=(--from "$IN_FROM")
+        [[ -n "$IN_VERSION" ]] && args+=(--version "$IN_VERSION")
+        [[ -n "$IN_MODEL" ]] && args+=(--model "$IN_MODEL")
+        [[ -n "$IN_JSON" ]] && args+=(--json-output "$IN_JSON")
+        # shellcheck disable=SC2206 # intentional word splitting of free-form extra args
+        [[ -n "$IN_ARGS" ]] && args+=($IN_ARGS)
+        uvx --from "$GITHUB_ACTION_PATH" agentic-release-notes "${args[@]}"
+        cat "$IN_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Publish the GitHub release
+      if: inputs.publish != 'none'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IN_TO: ${{ inputs.to }}
+        IN_OUTPUT: ${{ inputs.output }}
+        IN_PUBLISH: ${{ inputs.publish }}
+      run: |
+        set -euo pipefail
+        args=(publish --tag "$IN_TO" --notes "$IN_OUTPUT")
+        case "$IN_PUBLISH" in
+          draft) args+=(--draft) ;;
+          update) args+=(--update) ;;
+          release) ;;
+          *) echo "publish must be none, draft, release or update" >&2; exit 1 ;;
+        esac
+        uvx --from "$GITHUB_ACTION_PATH" agentic-release-notes "${args[@]}"

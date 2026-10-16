@@ -1,0 +1,37 @@
+[project]
+name = "agentic-release-notes"
+version = "0.1.0"
+description = "Agentic, evidence-checked, user-facing release notes for any git project"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Gaetan Semet" }]
+requires-python = ">=3.11"
+dependencies = ["packaging>=23", "pyyaml>=6"]
+keywords = ["release-notes", "changelog", "copilot", "claude", "agent", "conventional-commits"]
+
+[project.urls]
+Homepage = "https://github.com/gsemet/agentic-gh-release-notes-generator"
+
+[project.scripts]
+agentic-release-notes = "agentic_release_notes.cli:main"
+arn = "agentic_release_notes.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_release_notes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

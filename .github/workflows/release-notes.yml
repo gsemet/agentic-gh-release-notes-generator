@@ -1,0 +1,26 @@
+# Dogfooding: draft this project's own GitHub releases with the action.
+name: Release notes
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./
+        with:
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          json-output: release-notes.json
+          publish: draft
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.*
